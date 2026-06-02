@@ -4,39 +4,68 @@ using System.Collections;
 public class PizzaMover : MonoBehaviour
 {
     public static PizzaMover instance;
-    public float moveDuration = 0.8f;
+    public float moveDuration = 2f;
+
+    // Pre‑calculated 6 slots
+    private Vector3[] slotPositions = new Vector3[6];
+    private Quaternion[] slotRotations = new Quaternion[6];
 
     private void Awake()
     {
         instance = this;
+        PrecalculateSlots();
+    }
+
+    private void PrecalculateSlots()
+    {
+        float radius = 0f; // distance from center
+        float height = 0.18f;
+
+        for (int i = 0; i < 6; i++)
+        {
+            float angle = i * 60f * Mathf.Deg2Rad; // 360/6 = 60°
+            slotPositions[i] = new Vector3(
+                Mathf.Cos(angle) * radius,
+                height,
+                Mathf.Sin(angle) * radius
+            );
+            slotRotations[i] = Quaternion.Euler(0f, -angle * Mathf.Rad2Deg + 180f, 0f);
+        }
     }
 
     public void MovePizza(Transform pizza, Vector3 startPos, Vector3 endPos, Plate source, Plate target, System.Action onComplete)
     {
-        // ✅ If pizza is already in the target plate AND already at its final spot, skip animation
-        if (pizza.parent == target.transform &&
-            Vector3.Distance(pizza.localPosition, target.transform.InverseTransformPoint(endPos)) < 0.001f)
-        {
-            onComplete?.Invoke();
-            return;
-        }
-
         StartCoroutine(MoveAlongBezier(pizza, startPos, endPos, source, target, onComplete));
     }
 
     IEnumerator MoveAlongBezier(Transform pizza, Vector3 startPos, Vector3 endPos, Plate source, Plate target, System.Action onComplete)
     {
-        pizza.SetParent(null);
+        // Re‑parent immediately
+        pizza.SetParent(target.transform);
 
-        // Start and end at plate height
         startPos.y = 0.18f;
         endPos.y = 0.18f;
 
-        // Control point above midpoint for arc
-        Vector3 controlPoint = (startPos + endPos) / 2f;
-        controlPoint.y = 2f; // arc height
+        // Midpoint between start and end
+        Vector3 midPoint = (startPos + endPos) / 2f;
+
+        // ✅ Dramatic sideways offset (always wide)
+        float sideOffset = Random.Range(1.5f, 2.5f);
+        if (Random.value < 0.5f) sideOffset = -sideOffset;
+
+        // Control point is above and sideways → boomerang curve
+        Vector3 controlPoint = midPoint + new Vector3(sideOffset, 2f, 0f);
 
         float elapsed = 0f;
+
+        // Target slot index = last child index
+        int targetIndex = target.transform.childCount;
+        if (targetIndex >= slotPositions.Length) targetIndex = slotPositions.Length - 1;
+
+        Vector3 finalLocalPos = slotPositions[targetIndex];
+        Quaternion finalLocalRot = slotRotations[targetIndex];
+
+        Quaternion startRot = pizza.rotation;
 
         while (elapsed < moveDuration)
         {
@@ -49,60 +78,23 @@ public class PizzaMover : MonoBehaviour
                           Mathf.Pow(t, 2) * endPos;
 
             pizza.position = pos;
+
+            // ✅ Smooth rotation towards final slot rotation
+            pizza.rotation = Quaternion.Slerp(startRot, target.transform.rotation * finalLocalRot, t);
+
             yield return null;
         }
 
-        // ✅ Check lock before re-parenting
-        if (target.IsLockedToSingleType(out string lockedTag) && pizza.tag != lockedTag)
+        // ✅ Snap to exact slot position/rotation
+        int sliceCount = target.transform.childCount;
+        for (int i = 0; i < sliceCount; i++)
         {
-            // Wrong type → send back to source
-            pizza.SetParent(source.transform);
-            pizza.localPosition = Vector3.up * ((source.transform.childCount - 1) * 0.2f);
-            Debug.Log($"Pizza {pizza.tag} rejected by {target.name}, sent back to {source.name}");
-        }
-        else
-        {
-            // ✅ Capacity check before placement
-            if (target.IsFull())
-            {
-                // Target full → send back to source
-                pizza.SetParent(source.transform);
-                pizza.localPosition = Vector3.up * ((source.transform.childCount - 1) * 0.2f);
-                Debug.Log($"Target {target.name} is full, pizza returned to {source.name}");
-            }
-            else
-            {
-                // 🍕 Proper pizza wheel formation
-                pizza.SetParent(target.transform);
-
-                int sliceCount = target.transform.childCount;
-                float angleStep = 360f / sliceCount;
-
-                // Radius = 0 → tips meet exactly at center
-                float radius = 0f;
-
-                // Re‑arrange ALL pizzas on the plate
-                for (int i = 0; i < sliceCount; i++)
-                {
-                    Transform slice = target.transform.GetChild(i);
-
-                    float angle = i * angleStep * Mathf.Deg2Rad;
-
-                    // Position at center (no spacing)
-                    Vector3 circlePos = new Vector3(
-                        Mathf.Cos(angle) * radius,
-                        0.18f,
-                        Mathf.Sin(angle) * radius
-                    );
-
-                    slice.localPosition = circlePos;
-
-                    // Rotate slice so crust faces outward, tip inward
-                    slice.localRotation = Quaternion.Euler(0f, -angle * Mathf.Rad2Deg + 180f, 0f);
-                }
-            }
+            Transform slice = target.transform.GetChild(i);
+            slice.localPosition = slotPositions[i];
+            slice.localRotation = slotRotations[i];
         }
 
         onComplete?.Invoke();
     }
+
 }

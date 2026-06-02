@@ -52,52 +52,55 @@ public class Drag : MonoBehaviour
 
     void OnMouseUp()
     {
-        // ✅ Don’t allow dropping again once placed
-        if (plate.isPlaced)
-            return;
-
-        dragging = false;
-
-        Ray ray = cam.ScreenPointToRay(Input.mousePosition);
-
-        if (Physics.Raycast(ray, out RaycastHit hit, 100f, tileLayer))
+        if (GameManager.Instance.CurrentState == GameState.Playing)
         {
-            if (hit.collider.CompareTag("Block"))
+            // ✅ Don’t allow dropping again once placed
+            if (plate.isPlaced)
+                return;
+
+            dragging = false;
+
+            Ray ray = cam.ScreenPointToRay(Input.mousePosition);
+
+            if (Physics.Raycast(ray, out RaycastHit hit, 100f, tileLayer))
             {
-                // 🔒 Check if block already has a plate child
-                Plate existingPlate = hit.collider.GetComponentInChildren<Plate>();
-                if (existingPlate != null && existingPlate != plate && existingPlate.isPlaced)
+                if (hit.collider.CompareTag("Block"))
                 {
-                    Debug.LogWarning($"Block {hit.collider.name} already has a plate!");
-                    transform.position = startPosition; // revert
+                    // 🔒 Check if block already has a plate child
+                    Plate existingPlate = hit.collider.GetComponentInChildren<Plate>();
+                    if (existingPlate != null && existingPlate != plate && existingPlate.isPlaced)
+                    {
+                        Debug.LogWarning($"Block {hit.collider.name} already has a plate!");
+                        transform.position = startPosition; // revert
+                        return;
+                    }
+
+                    // Snap to block
+                    Vector3 pos = hit.collider.transform.position;
+                    pos.x = Mathf.Round(pos.x);
+                    pos.z = Mathf.Round(pos.z);
+
+                    Renderer blockRenderer = hit.collider.GetComponent<Renderer>();
+                    Renderer myRenderer = GetComponentInChildren<Renderer>();
+
+                    if (blockRenderer != null && myRenderer != null)
+                    {
+                        pos.y = blockRenderer.bounds.max.y + (myRenderer.bounds.size.y * 0.5f);
+                    }
+
+                    transform.position = pos;
+
+                    // ✅ Parent plate to block so hierarchy enforces uniqueness
+                    transform.SetParent(hit.collider.transform);
+
+                    // ✅ Mark as placed → locked forever
+                    plate.OnPlaced();
+
                     return;
                 }
-
-                // Snap to block
-                Vector3 pos = hit.collider.transform.position;
-                pos.x = Mathf.Round(pos.x);
-                pos.z = Mathf.Round(pos.z);
-
-                Renderer blockRenderer = hit.collider.GetComponent<Renderer>();
-                Renderer myRenderer = GetComponentInChildren<Renderer>();
-
-                if (blockRenderer != null && myRenderer != null)
-                {
-                    pos.y = blockRenderer.bounds.max.y + (myRenderer.bounds.size.y * 0.5f);
-                }
-
-                transform.position = pos;
-
-                // ✅ Parent plate to block so hierarchy enforces uniqueness
-                transform.SetParent(hit.collider.transform);
-
-                // ✅ Mark as placed → locked forever
-                plate.OnPlaced();
-
-                return;
             }
+            return;
         }
-
         // Not dropped on valid block → revert
         transform.position = startPosition;
     }

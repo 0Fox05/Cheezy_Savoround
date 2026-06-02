@@ -1,181 +1,277 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 public class SortingSystem : MonoBehaviour
 {
     public static SortingSystem instance;
-    private int activeMoves = 0; // lock flag for animations
+    private int activeMoves = 0;
+    private bool isSorting = false;
 
-    private void Awake()
-    {
-        instance = this;
-    }
+    private void Awake() => instance = this;
 
     private void Update()
     {
-        Plate[] allPlates = FindObjectsOfType<Plate>();
-
-        foreach (Plate plate in allPlates)
+        if (GameManager.Instance.CurrentState == GameState.Sorting && !isSorting && activeMoves == 0)
         {
-            if (plate == null || !plate.isPlaced)
-                continue;
-
-            TryMoveFromPlate(plate);
+            isSorting = true;
+            StartCoroutine(SortLoop());
         }
 
-        ClearEmptyPlates(allPlates);
-    }
-
-    void TryMoveFromPlate(Plate source)
-    {
-        if (source.transform.childCount == 0)
-            return;
-
-        // 🚨 If plate has exactly one pizza → locked unless merging
-        if (source.transform.childCount == 1)
+        // ✅ Check if 24 plates are placed
+        int placedCount = FindObjectsOfType<Plate>().Count(p => p.isPlaced);
+        if (placedCount >= 24)
         {
-            string tag = source.transform.GetChild(0).tag;
-
-            Plate target = GetNearbyValidTarget(source, tag);
-            if (target != null && !target.IsFull())
-            {
-                MovePizza(source.transform.GetChild(0), source, target);
-            }
-
-            return; // otherwise locked
-        }
-
-        // Normal multi‑pizza behavior
-        List<Transform> pizzas = new List<Transform>();
-        foreach (Transform t in source.transform)
-            pizzas.Add(t);
-
-        foreach (Transform pizza in pizzas)
-        {
-            string tag = pizza.tag;
-            Plate target = GetNearbyValidTarget(source, tag);
-
-            if (target != null && target != source && !target.IsFull())
-            {
-                MovePizza(pizza, source, target);
-            }
+            StartCoroutine(CheckGameOverAfterDelay());
         }
     }
 
-    Plate GetNearbyValidTarget(Plate source, string tag)
+    IEnumerator SortLoop()
     {
-        Vector3[] dirs = { Vector3.forward, Vector3.back, Vector3.left, Vector3.right };
+        var placedPlates = FindObjectsOfType<Plate>()
+            .Where(p => p != null && p.isPlaced)
+            .OrderBy(p => p.placedTimer)
+            .ToList();
 
-        foreach (Vector3 dir in dirs)
+        if (placedPlates.Count == 0)
         {
-            Collider[] hits = Physics.OverlapSphere(source.transform.position + dir, 0.2f);
+            isSorting = false;
+            GameManager.Instance.ChangeState(GameState.Playing);
+            yield break;
+        }
 
-            foreach (Collider hit in hits)
+        Plate earliestPlate = placedPlates.First();
+        var neighbors = ScanNeighbors(earliestPlate).Where(n => n.isPlaced).ToList();
+
+        if (neighbors.Count == 0)
+        {
+            isSorting = false;
+            GameManager.Instance.ChangeState(GameState.Playing);
+            Debug.Log("Earliest plate has no neighbors, returning to Playing");
+            yield break;
+        }
+
+        while (true)
+        {
+            placedPlates = placedPlates
+                .Where(p => p != null) // ✅ filter destroyed plates
+                .OrderBy(p => p.IsPure() ? 0 : 1)
+                .ThenBy(p => p.placedTimer)
+                .ToList();
+
+            var plannedMoves = new List<(Transform pizza, Plate source, Plate target)>();
+
+            foreach (var plate in placedPlates)
+                if (plate != null)
+                    PlanMoves(plate, plannedMoves);
+
+            if (plannedMoves.Count == 0) break;
+
+            foreach (var move in plannedMoves)
+                if (move.target != null && !move.target.IsFull())
+                    MovePizza(move.pizza, move.source, move.target);
+
+            yield return new WaitUntil(() => activeMoves == 0);
+
+            // ✅ Safely clear and refresh plates after destruction
+            ClearEmptyPlates(placedPlates);
+            yield return null; // wait one frame so Destroy() completes
+            placedPlates = FindObjectsOfType<Plate>()
+                .Where(p => p != null && p.isPlaced)
+                .OrderBy(p => p.placedTimer)
+                .ToList();
+
+            yield return new WaitForSeconds(0.2f);
+        }
+
+        isSorting = false;
+        ClearEmptyPlates(FindObjectsOfType<Plate>());
+        GameManager.Instance.ChangeState(GameState.Playing);
+        Debug.Log("Sorting finished, cleared plates, returning to Playing");
+    }
+
+    void PlanMoves(Plate source, List<(Transform, Plate, Plate)> plannedMoves)
+    {
+        if (source == null || !source.isPlaced || source.transform.childCount == 0) return;
+
+        var neighbors = ScanNeighbors(source).Where(n => n != null && n.isPlaced).ToList();
+
+        // ✅ NEW RULE: Mixed plate with 2+ pure neighbors
+        if (source.IsMixed())
+        {
+            var pureNeighbors = neighbors.Where(n => n.IsPure()).ToList();
+            if (pureNeighbors.Count >= 2)
             {
-                Plate other = hit.GetComponent<Plate>();
-                if (other != null && other.isPlaced && !other.IsFull())
+                // Find common tags between mix and pure neighbors
+                var mixTags = source.transform.Cast<Transform>().Select(p => p.tag).Distinct().ToList();
+
+                foreach (var tag in mixTags)
                 {
-                    // ✅ Empty plate only valid for mixed source
-                    if (other.transform.childCount == 0 && source.IsMixed())
-                        return other;
-
-                    // ✅ If plate has only one pizza, lock to that type
-                    if (other.transform.childCount == 1)
+                    var matchingPure = pureNeighbors.Where(p => p.HasPizza(tag)).ToList();
+                    if (matchingPure.Count >= 2)
                     {
-                        string lockedTag = other.transform.GetChild(0).tag;
-                        if (tag != lockedTag) continue;
+                        // Pick lower placedTimer pure plate
+                        Plate lowerPure = matchingPure.OrderBy(p => p.placedTimer).First();
+                        Plate higherPure = matchingPure.OrderBy(p => p.placedTimer).Last();
 
-                        // ✅ Single + Single → newer single wins
-                        if (source.transform.childCount == 1 && other.transform.childCount == 1)
+                        // Mixed gives pizzas of tag to lower pure
+                        foreach (Transform pizza in source.transform)
                         {
-                            if (other.placedTimer < source.placedTimer)
-                                return other; // newer wins
-                            else
-                                continue;
+                            if (pizza.CompareTag(tag) && !lowerPure.IsFull())
+                                plannedMoves.Add((pizza, source, lowerPure));
                         }
 
-                        return other; // same type → accept
-                    }
-
-                    // ✅ If plate is pure (all same type), also lock to that type
-                    if (other.IsPure())
-                    {
-                        string lockedTag = other.transform.GetChild(0).tag;
-                        if (tag != lockedTag) continue;
-
-                        // ✅ Pure + Pure → newer pure wins
-                        if (source.IsPure())
+                        // Higher pure sends pizzas of tag to mix
+                        foreach (Transform pizza in higherPure.transform)
                         {
-                            if (other.placedTimer < source.placedTimer)
-                                return other; // newer wins
-                            else
-                                continue;
+                            if (pizza.CompareTag(tag) && !source.IsFull())
+                                plannedMoves.Add((pizza, higherPure, source));
                         }
 
-                        return other;
+                        // Then mix forwards them to lower pure (respect capacity)
+                        foreach (Transform pizza in source.transform)
+                        {
+                            if (pizza.CompareTag(tag) && !lowerPure.IsFull())
+                                plannedMoves.Add((pizza, source, lowerPure));
+                        }
                     }
-
-                    // ✅ Mixed → Mixed allowed
-                    if (source.IsMixed() && other.IsMixed() && other.HasPizza(tag))
-                        return other;
-
-                    // ✅ Normal same-type rule
-                    if (other.HasPizza(tag))
-                        return other;
                 }
             }
         }
 
-        return null;
+        // Existing PURE RULES
+        if (source.IsPure())
+        {
+            string pureTag = source.transform.GetChild(0).tag;
+
+            foreach (var neighbor in neighbors.Where(n => n.IsMixed()))
+            {
+                foreach (Transform pizza in neighbor.transform)
+                {
+                    if (pizza.CompareTag(pureTag) && !source.IsFull() && neighbor != source)
+                    {
+                        plannedMoves.Add((pizza, neighbor, source));
+                    }
+                }
+            }
+
+            foreach (var neighbor in neighbors.Where(n => n.IsPure() && n.HasPizza(pureTag)))
+            {
+                Plate target = (source.placedTimer < neighbor.placedTimer) ? source : neighbor;
+                Plate donor = (target == source) ? neighbor : source;
+
+                if (donor == target) continue;
+
+                foreach (Transform pizza in donor.transform)
+                {
+                    if (pizza.CompareTag(pureTag) && !target.IsFull())
+                    {
+                        plannedMoves.Add((pizza, donor, target));
+                    }
+                }
+            }
+            return;
+        }
+
+        // Existing MIX RULES (mix vs mix)
+        if (source.IsMixed())
+        {
+            foreach (var neighbor in neighbors.Where(n => n.IsMixed()))
+            {
+                var sourceTags = source.transform.Cast<Transform>().Select(p => p.tag).Distinct();
+                var neighborTags = neighbor.transform.Cast<Transform>().Select(p => p.tag).Distinct();
+                var commonTags = sourceTags.Intersect(neighborTags).ToList();
+
+                if (commonTags.Count == 0) continue;
+
+                Plate target = (source.placedTimer < neighbor.placedTimer) ? source : neighbor;
+                Plate donor = (target == source) ? neighbor : source;
+
+                if (donor == target) continue;
+
+                foreach (var tag in commonTags)
+                {
+                    foreach (Transform pizza in donor.transform)
+                    {
+                        if (pizza.CompareTag(tag) && !target.IsFull())
+                        {
+                            plannedMoves.Add((pizza, donor, target));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    List<Plate> ScanNeighbors(Plate source)
+    {
+        Vector3[] dirs = { Vector3.forward, Vector3.back, Vector3.left, Vector3.right };
+        var neighbors = new List<Plate>();
+        foreach (var dir in dirs)
+        {
+            foreach (var hit in Physics.OverlapSphere(source.transform.position + dir, 0.19f))
+            {
+                var other = hit.GetComponent<Plate>();
+                if (other != null && other.isPlaced) neighbors.Add(other);
+            }
+        }
+        return neighbors;
     }
 
     void MovePizza(Transform pizza, Plate source, Plate target)
     {
-        activeMoves++; // lock destroy system
+        // Don’t animate if source and target are the same
+        if (source == target) return;
 
+        activeMoves++;
         PizzaMover.instance.MovePizza(
             pizza,
             source.transform.position,
             target.transform.position,
             source,
             target,
-            () => { activeMoves--; } // unlock destroy system after animation
+            () => { activeMoves--; }
         );
     }
 
-    void ClearEmptyPlates(Plate[] plates)
+    void ClearEmptyPlates(IEnumerable<Plate> plates)
     {
-        if (activeMoves > 0) return; // skip while pizzas are moving
+        if (activeMoves > 0) return;
 
-        foreach (Plate p in plates)
+        var toDestroy = new List<GameObject>();
+
+        foreach (var p in plates)
         {
-            if (p == null || !p.isPlaced || p.transform.childCount > 0)
+            if (p == null || !p.isPlaced) continue;
+
+            if (p.IsFull() && p.IsPure())
+            {
+                GameManager.Instance.AddScore(10);
+                Debug.Log("add 10 score");
+                toDestroy.Add(p.gameObject);
                 continue;
-
-            bool keep = false;
-            Vector3[] dirs = { Vector3.forward, Vector3.back, Vector3.left, Vector3.right };
-
-            foreach (Vector3 dir in dirs)
-            {
-                Collider[] hits = Physics.OverlapSphere(p.transform.position + dir, 0.2f);
-                foreach (Collider hit in hits)
-                {
-                    Plate neighbor = hit.GetComponent<Plate>();
-                    if (neighbor != null && neighbor.isPlaced && neighbor.IsMixed())
-                    {
-                        keep = true;
-                        break;
-                    }
-                }
-                if (keep) break;
             }
 
-            if (!keep)
+            if (p.transform.childCount == 0)
             {
-                Debug.Log($"Removed empty plate: {p.name}");
-                Destroy(p.gameObject);
+                Debug.Log("Removed empty plate");
+                toDestroy.Add(p.gameObject);
             }
+        }
+
+        foreach (var obj in toDestroy)
+            if (obj != null)
+                Destroy(obj);
+    }
+
+    IEnumerator CheckGameOverAfterDelay()
+    {
+        yield return new WaitForSeconds(0.3f);
+
+        if (GameManager.Instance.CurrentState == GameState.Playing)
+        {
+            GameManager.Instance.ChangeState(GameState.GameOver);
+            Debug.Log("Game Over: 24 plates placed and no moves left.");
         }
     }
 }

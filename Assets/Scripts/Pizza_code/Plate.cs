@@ -1,99 +1,78 @@
 using UnityEngine;
+using System.Linq;
 
 public class Plate : MonoBehaviour
 {
     public int maxPizza = 6;
-
-    // true after player places plate
     public bool isPlaced;
-
-    // lower = newer
     public float placedTimer;
 
     private void Update()
     {
         if (isPlaced)
         {
-            placedTimer += Time.deltaTime;
+            placedTimer += Time.deltaTime; // continuously increases
         }
     }
 
     public void OnPlaced()
     {
         isPlaced = true;
-
-        // newest starts at 0
-        placedTimer = 0f;
+        placedTimer = 0f; // reset to zero when placed
+        GameManager.Instance.ChangeState(GameState.Sorting);
     }
 
     public bool IsFull()
     {
-        return transform.childCount >= maxPizza;
+        return isPlaced && transform.childCount >= maxPizza;
     }
 
     public bool HasPizza(string tag)
     {
+        if (!isPlaced) return false;
         foreach (Transform pizza in transform)
         {
-            if (pizza.CompareTag(tag))
-            {
-                return true;
-            }
+            if (pizza.CompareTag(tag)) return true;
         }
-
         return false;
     }
+
     public bool IsMixed()
     {
-        if (transform.childCount <= 1) return false;
+        if (!isPlaced || transform.childCount <= 1) return false;
+
         string firstTag = transform.GetChild(0).tag;
-        for (int i = 1; i < transform.childCount; i++)
+        foreach (Transform pizza in transform)
         {
-            if (transform.GetChild(i).tag != firstTag)
-                return true;
+            if (pizza.tag != firstTag) return true;
         }
         return false;
     }
 
     public bool IsPure()
     {
-        // empty plate is NOT pure
-        if (transform.childCount == 0)
+        if (!isPlaced || transform.childCount == 0) return false;
+
+        string firstTag = transform.GetChild(0).tag;
+        foreach (Transform pizza in transform)
         {
-            return false;
+            if (pizza.tag != firstTag) return false;
         }
-
-        string firstTag =
-            transform.GetChild(0).tag;
-
-        for (int i = 1; i < transform.childCount; i++)
-        {
-            if (
-                transform.GetChild(i).tag
-                != firstTag
-            )
-            {
-                return false;
-            }
-        }
-
         return true;
     }
+
     public bool IsLockedToSingleType(out string lockedTag)
     {
         lockedTag = null;
-
-        if (transform.childCount == 0) return false;
+        if (!isPlaced || transform.childCount == 0) return false;
 
         string firstTag = transform.GetChild(0).tag;
-        for (int i = 1; i < transform.childCount; i++)
+        foreach (Transform pizza in transform)
         {
-            if (transform.GetChild(i).tag != firstTag)
-                return false; // still mixed
+            if (pizza.tag != firstTag) return false;
         }
 
         lockedTag = firstTag;
-        return true; // locked to one type
+        return true;
     }
-
 }
