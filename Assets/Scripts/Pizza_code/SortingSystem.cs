@@ -23,7 +23,13 @@ public class SortingSystem : MonoBehaviour
         int placedCount = FindObjectsOfType<Plate>().Count(p => p.isPlaced);
         if (placedCount >= 24)
         {
-            StartCoroutine(CheckGameOverAfterDelay());
+            // 👇 new guard: skip if any plate is still clearing
+            bool anyClearing = FindObjectsOfType<Plate>().Any(p => p.isPlaced && p.isClearing);
+
+            if (!anyClearing && GameManager.Instance.CurrentState == GameState.Playing)
+            {
+                StartCoroutine(CheckGameOverAfterDelay());
+            }
         }
     }
 
@@ -93,7 +99,8 @@ public class SortingSystem : MonoBehaviour
 
     void PlanMoves(Plate source, List<(Transform, Plate, Plate)> plannedMoves)
     {
-        if (source == null || !source.isPlaced || source.transform.childCount == 0) return;
+        if (source == null || !source.isPlaced || source.isClearing) return;
+        if (source.transform.childCount == 0) return;
 
         var neighbors = ScanNeighbors(source).Where(n => n != null && n.isPlaced).ToList();
 
@@ -238,31 +245,51 @@ public class SortingSystem : MonoBehaviour
     {
         if (activeMoves > 0) return;
 
-        var toDestroy = new List<GameObject>();
-
         foreach (var p in plates)
         {
             if (p == null || !p.isPlaced) continue;
 
-            if (p.IsFull() && p.IsPure())
+            if (p.IsFull() && p.IsPure() && !p.hasCleared)
             {
+                p.hasCleared = true; // ✅ prevents double scoring
+
                 GameManager.Instance.AddScore(10);
                 Debug.Log("add 10 score");
-                toDestroy.Add(p.gameObject);
+
+                SpawnExplosion(p.transform.position);
+
+                var textObj = PoolManager.Instance.scoreTextPool.Get();
+                textObj.transform.SetParent(PoolManager.Instance.worldCanvas.transform, false);
+                textObj.transform.position = p.transform.position + Vector3.up * 0.5f;
+                textObj.GetComponent<FloatingText>().Show("+10");
+
+                var anim = p.GetComponent<PlateClearAnimation>();
+                if (anim != null) anim.PlayClearAnimation();
+                else Destroy(p.gameObject);
+
                 continue;
             }
 
             if (p.transform.childCount == 0)
             {
                 Debug.Log("Removed empty plate");
-                toDestroy.Add(p.gameObject);
+
+                // ❌ No text here, just animation
+                var anim = p.GetComponent<PlateClearAnimation>();
+                if (anim != null) anim.PlayClearAnimation();
+                else Destroy(p.gameObject);
             }
         }
-
-        foreach (var obj in toDestroy)
-            if (obj != null)
-                Destroy(obj);
     }
+
+    void SpawnExplosion(Vector3 pos)
+    {
+        GameObject explosion = PoolManager.Instance.explosionPool.Get();
+        explosion.transform.position = pos;
+        // rotation optional
+        explosion.transform.rotation = Quaternion.identity;
+    }
+
 
     IEnumerator CheckGameOverAfterDelay()
     {

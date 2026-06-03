@@ -52,21 +52,25 @@ public class Drag : MonoBehaviour
 
     void OnMouseUp()
     {
+        // If plate already placed, ignore completely
+        if (plate.isPlaced)
+            return;
+
+        // If we never started dragging, ignore
+        if (!dragging)
+            return;
+
+        dragging = false;
+
+        Ray ray = cam.ScreenPointToRay(Input.mousePosition);
+
         if (GameManager.Instance.CurrentState == GameState.Playing)
         {
-            // ✅ Don’t allow dropping again once placed
-            if (plate.isPlaced)
-                return;
-
-            dragging = false;
-
-            Ray ray = cam.ScreenPointToRay(Input.mousePosition);
-
+            // Only allow snapping to blocks in Playing state
             if (Physics.Raycast(ray, out RaycastHit hit, 100f, tileLayer))
             {
                 if (hit.collider.CompareTag("Block"))
                 {
-                    // 🔒 Check if block already has a plate child
                     Plate existingPlate = hit.collider.GetComponentInChildren<Plate>();
                     if (existingPlate != null && existingPlate != plate && existingPlate.isPlaced)
                     {
@@ -75,7 +79,6 @@ public class Drag : MonoBehaviour
                         return;
                     }
 
-                    // Snap to block
                     Vector3 pos = hit.collider.transform.position;
                     pos.x = Mathf.Round(pos.x);
                     pos.z = Mathf.Round(pos.z);
@@ -89,19 +92,14 @@ public class Drag : MonoBehaviour
                     }
 
                     transform.position = pos;
-
-                    // ✅ Parent plate to block so hierarchy enforces uniqueness
                     transform.SetParent(hit.collider.transform);
-
-                    // ✅ Mark as placed → locked forever
                     plate.OnPlaced();
-
                     return;
                 }
             }
-            return;
         }
-        // Not dropped on valid block → revert
+
+        // ❌ Always revert to original position if not placed on a valid block
         transform.position = startPosition;
     }
 }

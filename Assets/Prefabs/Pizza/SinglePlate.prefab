@@ -72,6 +72,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 4a9c1757bb4d30a43922d56f0645f240, type: 3}
       insertIndex: -1
       addedObject: {fileID: -684853671911717483}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 4a9c1757bb4d30a43922d56f0645f240, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: -5650689715652611436}
   m_SourcePrefab: {fileID: 100100000, guid: 4a9c1757bb4d30a43922d56f0645f240, type: 3}
 --- !u!1 &3786076604406343806 stripped
 GameObject:
@@ -154,3 +157,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Plate
   maxPizza: 6
+  isPlaced: 0
+  placedTimer: 0
+--- !u!114 &-5650689715652611436
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3786076604406343806}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 420e3c27a49d12d438c9f3045a932077, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlateClearAnimation
+  growScale: 0.8
+  growDuration: 0.3
+  shrinkDuration: 1
+  spinSpeed: 360

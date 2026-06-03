@@ -4,7 +4,7 @@ using System.Collections;
 public class PizzaMover : MonoBehaviour
 {
     public static PizzaMover instance;
-    public float moveDuration = 2f;
+    public float moveDuration = 0.6f;
 
     // Pre‑calculated 6 slots
     private Vector3[] slotPositions = new Vector3[6];

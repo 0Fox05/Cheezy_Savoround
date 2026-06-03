@@ -6,6 +6,8 @@ public class Plate : MonoBehaviour
     public int maxPizza = 6;
     public bool isPlaced;
     public float placedTimer;
+    public bool hasCleared = false;
+    public bool isClearing = false;
 
     private void Update()
     {
