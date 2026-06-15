@@ -11,6 +11,8 @@ public class Drag : MonoBehaviour
     private Plane dragPlane;
     private Plate plate;
 
+    private BlockHighlight currentHighlight;
+
     void Start()
     {
         cam = Camera.main;
@@ -19,7 +21,6 @@ public class Drag : MonoBehaviour
 
     void Update()
     {
-        // ✅ If not dragging or already placed, do nothing
         if (!dragging || plate.isPlaced)
             return;
 
@@ -30,11 +31,38 @@ public class Drag : MonoBehaviour
             Vector3 point = ray.GetPoint(distance);
             transform.position = point + offset;
         }
+
+        // Highlight block under cursor
+        if (Physics.Raycast(ray, out RaycastHit hit, 100f, tileLayer))
+        {
+            if (hit.collider.CompareTag("Block"))
+            {
+                Plate existingPlate = hit.collider.GetComponentInChildren<Plate>();
+                bool isValid = (existingPlate == null || !existingPlate.isPlaced);
+
+                BlockHighlight bh = hit.collider.GetComponent<BlockHighlight>();
+                if (bh != null)
+                {
+                    if (currentHighlight != null && currentHighlight != bh)
+                        currentHighlight.ResetHighlight();
+
+                    bh.Highlight(isValid);
+                    currentHighlight = bh;
+                }
+            }
+        }
+        else
+        {
+            if (currentHighlight != null)
+            {
+                currentHighlight.ResetHighlight();
+                currentHighlight = null;
+            }
+        }
     }
 
     void OnMouseDown()
     {
-        // ✅ Don’t allow picking up again once placed
         if (plate.isPlaced)
             return;
 
@@ -52,11 +80,15 @@ public class Drag : MonoBehaviour
 
     void OnMouseUp()
     {
-        // If plate already placed, ignore completely
+        if (currentHighlight != null)
+        {
+            currentHighlight.ResetHighlight();
+            currentHighlight = null;
+        }
+
         if (plate.isPlaced)
             return;
 
-        // If we never started dragging, ignore
         if (!dragging)
             return;
 
@@ -66,7 +98,6 @@ public class Drag : MonoBehaviour
 
         if (GameManager.Instance.CurrentState == GameState.Playing)
         {
-            // Only allow snapping to blocks in Playing state
             if (Physics.Raycast(ray, out RaycastHit hit, 100f, tileLayer))
             {
                 if (hit.collider.CompareTag("Block"))
@@ -74,7 +105,7 @@ public class Drag : MonoBehaviour
                     Plate existingPlate = hit.collider.GetComponentInChildren<Plate>();
                     if (existingPlate != null && existingPlate != plate && existingPlate.isPlaced)
                     {
-                        Debug.LogWarning($"Block {hit.collider.name} already has a plate!");
+                        Debug.Log($"Block {hit.collider.name} already has a plate!");
                         transform.position = startPosition; // revert
                         return;
                     }
@@ -99,7 +130,6 @@ public class Drag : MonoBehaviour
             }
         }
 
-        // ❌ Always revert to original position if not placed on a valid block
         transform.position = startPosition;
     }
 }

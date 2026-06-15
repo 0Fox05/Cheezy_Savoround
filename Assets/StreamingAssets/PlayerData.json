@@ -1,0 +1,42 @@
+{
+    "gold": 150,
+    "skins": [
+        "Skins/Classic"
+    ],
+    "missions": [],
+    "achievements": [],
+    "equippedSkinPrefab": "",
+    "lastDailyClaimUTC": "2026-06-15",
+    "dailyRewardDay": 1,
+    "dailyRewardsClaimed": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+    ],
+    "boosters": [
+        {
+            "id": "1",
+            "boosterName": "MakePure",
+            "count": 0
+        },
+        {
+            "id": "2",
+            "boosterName": "MakeFull",
+            "count": 0
+        },
+        {
+            "id": "3",
+            "boosterName": "Throw",
+            "count": 0
+        },
+        {
+            "id": "4",
+            "boosterName": "Swap",
+            "count": 0
+        }
+    ]
+}

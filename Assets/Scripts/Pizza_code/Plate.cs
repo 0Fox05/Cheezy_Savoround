@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 using System.Linq;
 
 public class Plate : MonoBehaviour
@@ -8,73 +9,102 @@ public class Plate : MonoBehaviour
     public float placedTimer;
     public bool hasCleared = false;
     public bool isClearing = false;
+    public int nextSlotIndex = 0; // start at slot 0
+
+    public Transform[] slots; // assign in Inspector or generate dynamically
+
+    public void ReplaceWithPrefab(string prefabName)
+    {
+        GameObject newPrefab = Resources.Load<GameObject>($"Prefabs/{prefabName}");
+        if (newPrefab != null)
+        {
+            Instantiate(newPrefab, transform.position, transform.rotation);
+            Destroy(gameObject);
+        }
+        else
+        {
+            Debug.LogWarning($"Prefab {prefabName} not found in Resources/Prefabs!");
+        }
+    }
 
     private void Update()
     {
         if (isPlaced)
         {
-            placedTimer += Time.deltaTime; // continuously increases
+            placedTimer += Time.deltaTime;
         }
     }
 
     public void OnPlaced()
     {
-        isPlaced = true;
-        placedTimer = 0f; // reset to zero when placed
-        GameManager.Instance.ChangeState(GameState.Sorting);
+        placedTimer = 0f;
+
+        FallAnimation fall = GetComponent<FallAnimation>();
+        if (fall != null)
+        {
+            fall.PlayFall(() =>
+            {
+                isPlaced = true;
+                GameManager.Instance.ChangeState(GameState.Sorting);
+            });
+        }
+        else
+        {
+            isPlaced = true;
+            GameManager.Instance.ChangeState(GameState.Sorting);
+        }
+    }
+
+    // Helper: get all pizzas across slots
+    public IEnumerable<Transform> GetPizzas()
+    {
+        if (slots == null) yield break;
+        foreach (Transform slot in slots)
+        {
+            foreach (Transform pizza in slot)
+                yield return pizza;
+        }
     }
 
     public bool IsFull()
     {
-        return isPlaced && transform.childCount >= maxPizza;
+        if (!isPlaced || slots == null) return false;
+        return slots.All(s => s.childCount > 0);
     }
 
     public bool HasPizza(string tag)
     {
         if (!isPlaced) return false;
-        foreach (Transform pizza in transform)
-        {
-            if (pizza.CompareTag(tag)) return true;
-        }
-        return false;
+        return GetPizzas().Any(p => p.CompareTag(tag));
     }
 
     public bool IsMixed()
     {
-        if (!isPlaced || transform.childCount <= 1) return false;
-
-        string firstTag = transform.GetChild(0).tag;
-        foreach (Transform pizza in transform)
-        {
-            if (pizza.tag != firstTag) return true;
-        }
-        return false;
+        var pizzas = GetPizzas().ToList();
+        if (!isPlaced || pizzas.Count <= 1) return false;
+        string firstTag = pizzas[0].tag;
+        return pizzas.Any(p => p.tag != firstTag);
     }
 
     public bool IsPure()
     {
-        if (!isPlaced || transform.childCount == 0) return false;
-
-        string firstTag = transform.GetChild(0).tag;
-        foreach (Transform pizza in transform)
-        {
-            if (pizza.tag != firstTag) return false;
-        }
-        return true;
+        var pizzas = GetPizzas().ToList();
+        if (!isPlaced || pizzas.Count == 0) return false;
+        string firstTag = pizzas[0].tag;
+        return pizzas.All(p => p.tag == firstTag);
     }
 
     public bool IsLockedToSingleType(out string lockedTag)
     {
         lockedTag = null;
-        if (!isPlaced || transform.childCount == 0) return false;
-
-        string firstTag = transform.GetChild(0).tag;
-        foreach (Transform pizza in transform)
+        var pizzas = GetPizzas().ToList();
+        if (!isPlaced || pizzas.Count == 0) return false;
+        string firstTag = pizzas[0].tag;
+        if (pizzas.All(p => p.tag == firstTag))
         {
-            if (pizza.tag != firstTag) return false;
+            lockedTag = firstTag;
+            return true;
         }
-
-        lockedTag = firstTag;
-        return true;
+        return false;
     }
 }

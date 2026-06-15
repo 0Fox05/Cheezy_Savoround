@@ -71,6 +71,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 77d56a9f917c1db41bee3603a99727a4, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3573639456405297702}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 77d56a9f917c1db41bee3603a99727a4, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4731928358545433957}
   m_SourcePrefab: {fileID: 100100000, guid: 77d56a9f917c1db41bee3603a99727a4, type: 3}
 --- !u!1 &4997051151437127608 stripped
 GameObject:
@@ -98,3 +101,17 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1.1, y: 0.2, z: 1.1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &4731928358545433957
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4997051151437127608}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56bb5d758f886f24187919e05d77f23b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BlockHighlight
+  validColor: {r: 1, g: 0.97013277, b: 0.2688679, a: 1}
+  invalidColor: {r: 0.9150943, g: 0.28920433, b: 0.28920433, a: 1}

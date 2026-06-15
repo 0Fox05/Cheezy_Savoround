@@ -1,70 +1,74 @@
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class PizzaMover : MonoBehaviour
 {
     public static PizzaMover instance;
     public float moveDuration = 0.6f;
 
-    // Pre‑calculated 6 slots
-    private Vector3[] slotPositions = new Vector3[6];
-    private Quaternion[] slotRotations = new Quaternion[6];
-
     private void Awake()
     {
         instance = this;
-        PrecalculateSlots();
     }
 
-    private void PrecalculateSlots()
+    public void MovePizza(Transform pizza, Plate source, Plate target, System.Action onComplete)
     {
-        float radius = 0f; // distance from center
-        float height = 0.18f;
+        // Reserve the next slot strictly by index order
+        Transform slot = ReserveNextOrderedSlot(target);
 
-        for (int i = 0; i < 6; i++)
+        if (slot == null)
         {
-            float angle = i * 60f * Mathf.Deg2Rad; // 360/6 = 60°
-            slotPositions[i] = new Vector3(
-                Mathf.Cos(angle) * radius,
-                height,
-                Mathf.Sin(angle) * radius
-            );
-            slotRotations[i] = Quaternion.Euler(0f, -angle * Mathf.Rad2Deg + 180f, 0f);
+            Debug.LogWarning("No empty slot available on target plate!");
+            onComplete?.Invoke();
+            return;
         }
+
+        StartCoroutine(MoveAlongBezier(pizza, source.transform.position, slot.position, slot, onComplete));
     }
 
-    public void MovePizza(Transform pizza, Vector3 startPos, Vector3 endPos, Plate source, Plate target, System.Action onComplete)
+    private Transform ReserveNextOrderedSlot(Plate target)
     {
-        StartCoroutine(MoveAlongBezier(pizza, startPos, endPos, source, target, onComplete));
+        for (int i = target.nextSlotIndex; i < target.slots.Length; i++)
+        {
+            Transform slot = target.slots[i];
+            bool reserved = false;
+            foreach (Transform child in slot)
+            {
+                if (child.name == "SlotReservation")
+                {
+                    reserved = true;
+                    break;
+                }
+            }
+
+            if (slot.childCount == 0 && !reserved)
+            {
+                GameObject placeholder = new GameObject("SlotReservation");
+                placeholder.transform.SetParent(slot);
+                placeholder.transform.localPosition = Vector3.zero;
+
+                // Update tracker for next time
+                target.nextSlotIndex = (i + 1) % target.slots.Length;
+                return slot;
+            }
+        }
+
+        // If no slot found, reset and retry from 0
+        target.nextSlotIndex = 0;
+        return null;
     }
 
-    IEnumerator MoveAlongBezier(Transform pizza, Vector3 startPos, Vector3 endPos, Plate source, Plate target, System.Action onComplete)
+    IEnumerator MoveAlongBezier(Transform pizza, Vector3 startPos, Vector3 endPos, Transform slot, System.Action onComplete)
     {
-        // Re‑parent immediately
-        pizza.SetParent(target.transform);
+        pizza.SetParent(null); // detach for smooth world movement
 
-        startPos.y = 0.18f;
-        endPos.y = 0.18f;
-
-        // Midpoint between start and end
         Vector3 midPoint = (startPos + endPos) / 2f;
-
-        // ✅ Dramatic sideways offset (always wide)
         float sideOffset = Random.Range(1.5f, 2.5f);
         if (Random.value < 0.5f) sideOffset = -sideOffset;
-
-        // Control point is above and sideways → boomerang curve
         Vector3 controlPoint = midPoint + new Vector3(sideOffset, 2f, 0f);
 
         float elapsed = 0f;
-
-        // Target slot index = last child index
-        int targetIndex = target.transform.childCount;
-        if (targetIndex >= slotPositions.Length) targetIndex = slotPositions.Length - 1;
-
-        Vector3 finalLocalPos = slotPositions[targetIndex];
-        Quaternion finalLocalRot = slotRotations[targetIndex];
-
         Quaternion startRot = pizza.rotation;
 
         while (elapsed < moveDuration)
@@ -78,23 +82,26 @@ public class PizzaMover : MonoBehaviour
                           Mathf.Pow(t, 2) * endPos;
 
             pizza.position = pos;
-
-            // ✅ Smooth rotation towards final slot rotation
-            pizza.rotation = Quaternion.Slerp(startRot, target.transform.rotation * finalLocalRot, t);
+            pizza.rotation = Quaternion.Slerp(startRot, slot.rotation, t);
 
             yield return null;
         }
 
-        // ✅ Snap to exact slot position/rotation
-        int sliceCount = target.transform.childCount;
-        for (int i = 0; i < sliceCount; i++)
+        // Snap to exact slot position/rotation
+        pizza.SetParent(slot);
+        pizza.localPosition = Vector3.zero;
+        pizza.localRotation = Quaternion.identity;
+
+        // Remove placeholder reservation
+        foreach (Transform child in slot)
         {
-            Transform slice = target.transform.GetChild(i);
-            slice.localPosition = slotPositions[i];
-            slice.localRotation = slotRotations[i];
+            if (child.name == "SlotReservation")
+            {
+                Destroy(child.gameObject);
+                break;
+            }
         }
 
         onComplete?.Invoke();
     }
-
 }

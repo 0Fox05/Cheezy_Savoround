@@ -8,6 +8,10 @@ public class PoolManager : MonoBehaviour
     public ObjectPool explosionPool;
     public ObjectPool scoreTextPool;
 
+    // ✅ Add new pools for combo and streak texts
+    public ObjectPool comboTextPool;
+    public ObjectPool streakTextPool;
+
     [Header("UI")]
     public Canvas worldCanvas;
 

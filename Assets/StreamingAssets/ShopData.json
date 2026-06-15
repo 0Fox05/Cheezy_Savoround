@@ -1,0 +1,37 @@
+{
+  "shop": {
+    "skins": [
+      {
+        "id": "1",
+        "name": "Classic",
+        "price": 0,
+        "prefabName": "Skins/Classic",
+        "owned": true
+      },
+      {
+        "id": "2",
+        "name": "Golden Plate",
+        "price": 50,
+        "prefabName": "Skins/Golden_Plate",
+        "owned": false
+      }
+    ],
+    "boosts": [
+      {
+        "id": "1",
+        "name": "MakePure",
+        "price": 50,
+        "prefabName": "Boosts/MakePure"
+      }
+    ],
+    "coins": [
+      {
+        "id": "1",
+        "name": "50Bouch",
+        "price": 50,
+        "prefabName": "Coins/50P",
+        "addAmount":50
+      }
+    ]
+  }
+}
