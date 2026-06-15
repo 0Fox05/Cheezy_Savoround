@@ -7,3 +7,4 @@ Cheezy Savoround is a fun sorting game where players organize pizza into the cor
 ## System Flow Diagram
 ![Game Flowchart](docs/SFDforSortingPizzaParty.jpeg)
 ## Gameplay
+![Menu](docs/MENUSC.png)
