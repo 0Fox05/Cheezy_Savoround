@@ -93,7 +93,11 @@ public class UIManager : MonoBehaviour
 
         playerData = SaveSystem.Load();
     }
-
+    public start()
+    {
+        HideAll();
+        menuPanel.SetActive(true);
+    }
     // ✅ Generic toggle for any panel
     public void TogglePanel(GameObject panel)
     {
