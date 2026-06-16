@@ -93,7 +93,7 @@ public class UIManager : MonoBehaviour
 
         playerData = SaveSystem.Load();
     }
-    public start()
+    public void start()
     {
         HideAll();
         menuPanel.SetActive(true);
