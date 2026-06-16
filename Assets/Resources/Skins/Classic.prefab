@@ -10,7 +10,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 3786076604406343806, guid: 82fdec70ead95114888ba0f51b8616d8, type: 3}
       propertyPath: m_Name
-      value: SinglePlate Variant
+      value: Classic
       objectReference: {fileID: 0}
     - target: {fileID: 4593962097695453892, guid: 82fdec70ead95114888ba0f51b8616d8, type: 3}
       propertyPath: m_LocalPosition.x

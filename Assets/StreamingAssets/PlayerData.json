@@ -1,14 +1,40 @@
 {
-    "gold": 57,
+    "gold": 100,
     "skins": [
-        "Skins/Classic",
-        "Skins/Blue_Plate"
+        "Skins/Classic"
     ],
     "missions": [],
     "achievements": [],
-    "equippedSkinPrefab": "Skins/Blue_Plate",
-    "lastDailyClaimUTC": "2026-06-16",
-    "dailyRewardDay": 2,
+    "achievementProgress": [
+        {
+            "id": 0,
+            "progress": 0,
+            "completed": false
+        },
+        {
+            "id": 1,
+            "progress": 0,
+            "completed": false
+        },
+        {
+            "id": 2,
+            "progress": 0,
+            "completed": false
+        },
+        {
+            "id": 3,
+            "progress": 0,
+            "completed": false
+        },
+        {
+            "id": 4,
+            "progress": 0,
+            "completed": false
+        }
+    ],
+    "equippedSkinPrefab": "",
+    "lastDailyClaimUTC": "",
+    "dailyRewardDay": 0,
     "dailyRewardsClaimed": [
         false,
         false,

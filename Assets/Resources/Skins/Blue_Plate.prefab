@@ -14,7 +14,7 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: c074b9d74d7e94f4cb970cbd039781fa, type: 2}
     - target: {fileID: 3786076604406343806, guid: 82fdec70ead95114888ba0f51b8616d8, type: 3}
       propertyPath: m_Name
-      value: Purple_Plate
+      value: Blue_Plate
       objectReference: {fileID: 0}
     - target: {fileID: 4593962097695453892, guid: 82fdec70ead95114888ba0f51b8616d8, type: 3}
       propertyPath: m_LocalPosition.x

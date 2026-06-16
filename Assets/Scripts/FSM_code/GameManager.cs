@@ -91,6 +91,37 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    public void IncreaseAchievementProgress(int id, int amount = 1)
+    {
+
+        PlayerData data = SaveSystem.Load();
+
+        // Find entry by ID
+        AchievementEntry entry = data.achievementProgress.Find(a => a.id == id);
+        if (entry == null)
+        {
+            entry = new AchievementEntry { id = id, progress = 0, completed = false };
+            data.achievementProgress.Add(entry);
+        }
+
+        entry.progress += amount;
+
+        // Clamp to target if you want
+        AchievementHolder holder = AchievementManager.Instance.holders.Find(h => h.achievementId == id);
+        if (holder != null)
+        {
+            if (entry.progress >= holder.targetValue)
+            {
+                entry.progress = holder.targetValue;
+                entry.completed = true;
+            }
+            holder.SetProgress(entry.progress);
+        }
+
+        SaveSystem.Save(data);
+        Debug.Log("Game Achievement up");
+    }
+
     public void RefreshGameState()
     {
         // refresh UI

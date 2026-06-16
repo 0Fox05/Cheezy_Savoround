@@ -245,6 +245,13 @@ public class SortingSystem : MonoBehaviour
 
                 // ✅ Register the clear here
                 ComboStreakSystem.instance.RegisterPlateClear(p);
+
+                // ✅ Achievement progress for ID 0
+                Debug.Log("Trying to increase achievement progress");
+                if (GameManager.Instance != null)
+                {
+                    GameManager.Instance.IncreaseAchievementProgress(0, 1);
+                }
             }
             else if (!p.GetPizzas().Any())
             {
@@ -254,6 +261,7 @@ public class SortingSystem : MonoBehaviour
             }
         }
     }
+
 
 
     void SpawnExplosion(Vector3 pos)

@@ -242,6 +242,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: SinglePlate
       objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 4a9c1757bb4d30a43922d56f0645f240, type: 3}
+      propertyPath: m_TagString
+      value: plate
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:
@@ -283,11 +287,6 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: -9083440683797868846}
   m_SourcePrefab: {fileID: 100100000, guid: 4a9c1757bb4d30a43922d56f0645f240, type: 3}
---- !u!23 &3425591064958929323 stripped
-MeshRenderer:
-  m_CorrespondingSourceObject: {fileID: -7511558181221131132, guid: 4a9c1757bb4d30a43922d56f0645f240, type: 3}
-  m_PrefabInstance: {fileID: 4056530835225154863}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &3786076604406343806 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 4a9c1757bb4d30a43922d56f0645f240, type: 3}
@@ -381,7 +380,6 @@ MonoBehaviour:
   - {fileID: 3560003440903196652}
   - {fileID: 8060403351807618386}
   - {fileID: 4439387216200671305}
-  plateRenderer: {fileID: 3425591064958929323}
 --- !u!114 &-5650689715652611436
 MonoBehaviour:
   m_ObjectHideFlags: 0

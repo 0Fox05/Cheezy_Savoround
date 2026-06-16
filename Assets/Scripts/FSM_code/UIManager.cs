@@ -14,14 +14,16 @@ public class UIManager : MonoBehaviour
     public GameObject menuPanel;
     public GameObject gameOverPanel;
     public GameObject shopPanel;
-    public GameObject dailyPanel;   // ✅ new daily panel
+    public GameObject dailyPanel;
+    public GameObject achievementPanel;   // ✅ new achievement panel
 
     [Header("Buttons")]
     public Button playButton;
     public Button restartButton;
     public Button resetButton;
     public Button shopButton;
-    public Button dailyButton;      // ✅ new daily button
+    public Button dailyButton;
+    public Button achievementButton;      // ✅ new achievement button
     public List<Button> exitButtons;
 
     [Header("Texts")]
@@ -65,37 +67,39 @@ public class UIManager : MonoBehaviour
             resetButton.onClick.AddListener(ResetAllData);
 
         if (shopButton != null)
-            shopButton.onClick.AddListener(OpenShop);
+            shopButton.onClick.AddListener(() => TogglePanel(shopPanel));
 
         if (dailyButton != null)
-            dailyButton.onClick.AddListener(ToggleDailyPanel);
+            dailyButton.onClick.AddListener(() => TogglePanel(dailyPanel));
 
-        claimButton.onClick.AddListener(OnClaimClicked);
+        if (achievementButton != null)
+            achievementButton.onClick.AddListener(() => TogglePanel(achievementPanel));
+
+        if (claimButton != null)
+            claimButton.onClick.AddListener(OnClaimClicked);
 
         RefreshDailyRewardsUI();
 
-        if (dailyPanel != null)
-            dailyPanel.SetActive(false);
+        // Panels start hidden
+        if (dailyPanel != null) dailyPanel.SetActive(false);
+        if (shopPanel != null) shopPanel.SetActive(false);
+        if (achievementPanel != null) achievementPanel.SetActive(false);
 
         foreach (Button btn in exitButtons)
         {
             if (btn != null)
                 btn.onClick.AddListener(ExitCurrentPanel);
         }
+
         playerData = SaveSystem.Load();
     }
 
-    // ✅ Toggle daily panel on/off
-    public void ToggleDailyPanel()
+    // ✅ Generic toggle for any panel
+    public void TogglePanel(GameObject panel)
     {
-        bool isActive = dailyPanel.activeSelf;
-        dailyPanel.SetActive(!isActive);
-    }
-
-    public void OpenShop()
-    {
-        shopPanel.SetActive(true);
-        GameManager.Instance.RefreshGameState();
+        bool isActive = panel.activeSelf;
+        StopAllCoroutines();
+        StartCoroutine(ScalePanel(panel, !isActive));
     }
 
     public void ShowMenu()
@@ -107,7 +111,6 @@ public class UIManager : MonoBehaviour
     public void ShowGame()
     {
         HideAll();
-        // If you have a gameplay panel, enable it here
     }
 
     public void ShowGameOver()
@@ -126,31 +129,20 @@ public class UIManager : MonoBehaviour
 
     private void ResetAllData()
     {
-        // Reset file
         var newData = SaveSystem.Reset();
 
-        // ✅ Reload shop data
         ShopManager shopManager = FindObjectOfType<ShopManager>();
         if (shopManager != null)
-        {
-            shopManager.ReloadShop();  // custom method to reload JSON and reset UI
-        }
+            shopManager.ReloadShop();
 
-        // ✅ Refresh Shop UI
         ShopUI shopUI = FindObjectOfType<ShopUI>();
         if (shopUI != null)
-        {
             shopUI.RefreshUI();
-        }
 
-        // ✅ Refresh Daily Rewards UI
         RefreshDailyRewardsUI();
-
-        // ✅ Refresh score UI
         UpdateScore(0);
 
         GameManager.Instance.RestartGame();
-
         Debug.Log("All data reset and UIs refreshed.");
     }
 
@@ -164,11 +156,8 @@ public class UIManager : MonoBehaviour
             return;
         }
 
-        // Loop rewards weekly
         if (playerData.dailyRewardDay >= dailyData.Days.Count)
-        {
-            playerData.dailyRewardDay = 0; // reset to first day
-        }
+            playerData.dailyRewardDay = 0;
 
         DayReward reward = dailyData.Days[playerData.dailyRewardDay];
         ClaimDailyReward(reward);
@@ -184,22 +173,13 @@ public class UIManager : MonoBehaviour
     {
         playerData = SaveSystem.Load();
 
-        // Apply gold reward
         if (reward.gold > 0)
-        {
-            playerData.gold = playerData.gold + reward.gold;
-        }
+            playerData.gold += reward.gold;
 
-        // Apply booster reward
         if (!string.IsNullOrEmpty(reward.boosterName))
-        {
             ShopManager.Instance.AddBooster(reward.boosterName, 1);
-        }
 
-        // Save back to JSON
         SaveSystem.Save(playerData);
-
-        // Sync GameManager
         GameManager.Instance.playerData = playerData;
 
         Debug.Log($"Daily reward claimed. Gold after claim: {playerData.gold}");
@@ -214,29 +194,24 @@ public class UIManager : MonoBehaviour
         {
             if (i < data.dailyRewardDay)
             {
-                // Mark as claimed
-                rewardImages[i].color = new Color(1f, 1f, 1f, 0.5f); // faded
+                rewardImages[i].color = new Color(1f, 1f, 1f, 0.5f);
                 if (rewardTexts != null && i < rewardTexts.Length)
-                {
-                    rewardTexts[i].text = "Claimed";   // ✅ show text
-                }
+                    rewardTexts[i].text = "Claimed";
             }
             else
             {
-                // Not yet claimed
                 rewardImages[i].color = Color.white;
                 if (rewardTexts != null && i < rewardTexts.Length)
-                {
-                    rewardTexts[i].text = "";          // clear text
-                }
+                    rewardTexts[i].text = "";
             }
         }
     }
 
-
     private void HideAll()
     {
         shopPanel.SetActive(false);
+        dailyPanel.SetActive(false);
+        achievementPanel.SetActive(false);
         menuPanel.SetActive(false);
         gameOverPanel.SetActive(false);
     }
@@ -244,17 +219,13 @@ public class UIManager : MonoBehaviour
     public void ExitCurrentPanel()
     {
         if (shopPanel.activeSelf)
-        {
-            shopPanel.SetActive(false);
-        }
-        if (gameOverPanel.activeSelf)
-        {
-            gameOverPanel.SetActive(false);
-        }
-        else if (menuPanel.activeSelf)
-        {
-            Debug.Log("Menu panel is active — Exit has no effect.");
-        }
+            TogglePanel(shopPanel);
+        else if (dailyPanel.activeSelf)
+            TogglePanel(dailyPanel);
+        else if (achievementPanel.activeSelf)
+            TogglePanel(achievementPanel);
+        else if (gameOverPanel.activeSelf)
+            gameOverPanel.SetActive(false); // keep slide logic if you want
     }
 
     public void OnPlayButtonClicked()
@@ -270,7 +241,7 @@ public class UIManager : MonoBehaviour
     public void UpdateScore(int score)
     {
         if (scoreText != null)
-            scoreText.text = "" + score.ToString();
+            scoreText.text = score.ToString();
     }
 
     private IEnumerator SlideDown(RectTransform panel)
@@ -292,5 +263,33 @@ public class UIManager : MonoBehaviour
         }
 
         panel.anchoredPosition = endPos;
+    }
+
+    private IEnumerator ScalePanel(GameObject panel, bool show)
+    {
+        if (show)
+            panel.SetActive(true);
+
+        RectTransform rect = panel.GetComponent<RectTransform>();
+        Vector3 startScale = show ? Vector3.zero : Vector3.one;
+        Vector3 endScale = show ? Vector3.one : Vector3.zero;
+
+        float duration = 0.3f;
+        float elapsed = 0f;
+
+        rect.localScale = startScale;
+
+        while (elapsed < duration)
+        {
+            float t = elapsed / duration;
+            rect.localScale = Vector3.Lerp(startScale, endScale, t);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        rect.localScale = endScale;
+
+        if (!show)
+            panel.SetActive(false);
     }
 }

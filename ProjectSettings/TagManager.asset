@@ -5,6 +5,13 @@ TagManager:
   serializedVersion: 3
   tags:
   - Block
+  - Pizza1
+  - Pizza2
+  - Pizza3
+  - Pizza4
+  - Pizza5
+  - Pizza6
+  - plate
   layers:
   - Default
   - TransparentFX
