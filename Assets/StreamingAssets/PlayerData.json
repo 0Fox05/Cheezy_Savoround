@@ -1,13 +1,14 @@
 {
-    "gold": 150,
+    "gold": 57,
     "skins": [
-        "Skins/Classic"
+        "Skins/Classic",
+        "Skins/Blue_Plate"
     ],
     "missions": [],
     "achievements": [],
-    "equippedSkinPrefab": "",
-    "lastDailyClaimUTC": "2026-06-15",
-    "dailyRewardDay": 1,
+    "equippedSkinPrefab": "Skins/Blue_Plate",
+    "lastDailyClaimUTC": "2026-06-16",
+    "dailyRewardDay": 2,
     "dailyRewardsClaimed": [
         false,
         false,

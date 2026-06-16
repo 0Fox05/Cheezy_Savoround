@@ -14,6 +14,20 @@
         "price": 50,
         "prefabName": "Skins/Golden_Plate",
         "owned": false
+      },
+      {
+        "id": "3",
+        "name": "Blue Plate",
+        "price": 150,
+        "prefabName": "Skins/Blue_Plate",
+        "owned": false
+      },
+      {
+        "id": "4",
+        "name": "Diamond Plate",
+        "price": 500,
+        "prefabName": "Skins/Diamond_Plate",
+        "owned": false
       }
     ],
     "boosts": [
@@ -22,6 +36,24 @@
         "name": "MakePure",
         "price": 50,
         "prefabName": "Boosts/MakePure"
+      },
+      {
+        "id": "2",
+        "name": "MakeFull",
+        "price": 50,
+        "prefabName": "Boosts/MakeFull"
+      },
+      {
+        "id": "3",
+        "name": "Throw",
+        "price": 50,
+        "prefabName": "Boosts/Throw"
+      },
+      {
+        "id": "4",
+        "name": "Swap",
+        "price": 50,
+        "prefabName": "Boosts/Swap"
       }
     ],
     "coins": [
@@ -31,6 +63,27 @@
         "price": 50,
         "prefabName": "Coins/50P",
         "addAmount":50
+      },
+      {
+        "id": "2",
+        "name": "100Bouch",
+        "price": 100,
+        "prefabName": "Coins/50P",
+        "addAmount":100
+      },
+      {
+        "id": "3",
+        "name": "150Bouch",
+        "price": 150,
+        "prefabName": "Coins/50P",
+        "addAmount":150
+      },
+      {
+        "id": "4",
+        "name": "250Bouch",
+        "price": 250,
+        "prefabName": "Coins/50P",
+        "addAmount":250
       }
     ]
   }
