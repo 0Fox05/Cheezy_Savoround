@@ -75,8 +75,8 @@ PlayerSettings:
   androidResizeableActivity: 1
   androidDefaultWindowWidth: 1080
   androidDefaultWindowHeight: 1920
-  androidMinimumWindowWidth: 1080
-  androidMinimumWindowHeight: 1920
+  androidMinimumWindowWidth: 720
+  androidMinimumWindowHeight: 1280
   androidFullscreenMode: 1
   androidAutoRotationBehavior: 1
   androidPredictiveBackSupport: 1
