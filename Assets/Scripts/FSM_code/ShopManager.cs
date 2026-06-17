@@ -1,7 +1,6 @@
 using System;
-using System.IO;
-using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine;
 
 public class ShopManager : MonoBehaviour
 {
@@ -15,24 +14,34 @@ public class ShopManager : MonoBehaviour
         Instance = this;
         shopData = LoadShopData();
     }
-        void Start()
+
+    void Start()
     {
-        
         ShowCategory("skins"); // default
     }
 
     public void ReloadShop()
     {
-        shopData = LoadShopData();  
+        shopData = LoadShopData();
         currentIndex = 0;
-        ShowCategory("skins");      
+        ShowCategory("skins");
     }
 
-    ShopData LoadShopData()
+    // ✅ Load ShopData.json from Resources
+    private ShopData LoadShopData()
     {
-        string filePath = Path.Combine(Application.streamingAssetsPath, "ShopData.json");
-        string jsonText = File.ReadAllText(filePath);
-        return JsonUtility.FromJson<ShopData>(jsonText);
+        TextAsset jsonFile = Resources.Load<TextAsset>("ShopData"); // no .json extension
+        if (jsonFile != null)
+        {
+            ShopData data = JsonUtility.FromJson<ShopData>(jsonFile.text);
+            Debug.Log("ShopData loaded successfully from Resources.");
+            return data;
+        }
+        else
+        {
+            Debug.LogError("ShopData.json not found in Resources!");
+            return new ShopData(); // fallback empty data
+        }
     }
 
     public void ShowCategory(string category)
@@ -104,7 +113,6 @@ public class ShopManager : MonoBehaviour
 
         SaveSystem.Save(GameManager.Instance.playerData);
     }
-
 
     public bool UseBooster(string boosterName)
     {

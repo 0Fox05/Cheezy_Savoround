@@ -5,9 +5,9 @@ using UnityEngine;
 public static class SaveSystem
 {
     private static string fileName = "PlayerData.json";
-    private static string filePath = Path.Combine(Application.streamingAssetsPath, fileName);
+    private static string filePath = Path.Combine(Application.persistentDataPath, fileName);
 
-    // Save data to JSON
+    // Save data to JSON (persistent path)
     public static void Save(PlayerData data)
     {
         string json = JsonUtility.ToJson(data, true);
@@ -21,6 +21,7 @@ public static class SaveSystem
     {
         if (File.Exists(filePath))
         {
+            // ✅ Load from persistent path if save exists
             string json = File.ReadAllText(filePath);
             PlayerData data = JsonUtility.FromJson<PlayerData>(json);
             Debug.Log("Data loaded from: " + filePath);
@@ -28,12 +29,23 @@ public static class SaveSystem
         }
         else
         {
-            Debug.LogWarning("Save file not found, creating new default data.");
-            PlayerData newData = new PlayerData();
-            Save(newData);
-            return newData;
+            // ✅ First run: load default from Resources
+            TextAsset jsonFile = Resources.Load<TextAsset>("PlayerData");
+            if (jsonFile != null)
+            {
+                PlayerData data = JsonUtility.FromJson<PlayerData>(jsonFile.text);
+                Save(data); // write to persistent path for future use
+                Debug.Log("Default PlayerData loaded from Resources.");
+                return data;
+            }
+            else
+            {
+                Debug.LogWarning("PlayerData.json not found in Resources, creating empty data.");
+                PlayerData newData = new PlayerData();
+                Save(newData);
+                return newData;
+            }
         }
-        GameManager.Instance.RefreshGameState();
     }
 
     // Reset data to defaults
@@ -48,12 +60,10 @@ public static class SaveSystem
         newData.boosters.Add(new BoosterEntry { id = "2", boosterName = "MakeFull", count = 0 });
         newData.boosters.Add(new BoosterEntry { id = "3", boosterName = "Throw", count = 0 });
         newData.boosters.Add(new BoosterEntry { id = "4", boosterName = "Swap", count = 0 });
-        
 
         Save(newData);
         Debug.Log("Data reset to defaults.");
         return newData;
-        GameManager.Instance.RefreshGameState();
     }
 
     // ✅ Get player's gold directly
@@ -69,7 +79,6 @@ public static class SaveSystem
         PlayerData data = Load();
         data.gold = amount;
         Save(data);
-        GameManager.Instance.RefreshGameState();
     }
 
     public static bool CanClaimDailyReward()
@@ -84,7 +93,6 @@ public static class SaveSystem
         // ✅ Only allow claim if a new day has started
         return (now.Date > lastClaim.Date);
     }
-
 
     public static void ClaimDailyReward()
     {

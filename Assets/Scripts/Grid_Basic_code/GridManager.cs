@@ -1,5 +1,4 @@
 ﻿using UnityEngine;
-using System.IO;
 
 public class GridManager : MonoBehaviour
 {
@@ -8,9 +7,18 @@ public class GridManager : MonoBehaviour
 
     void Start()
     {
-        string path = Path.Combine(Application.streamingAssetsPath, "grid.json");
-        string json = File.ReadAllText(path);
-        grid = JsonUtility.FromJson<GridData>(json);
+        // ✅ Load grid.json from Resources
+        TextAsset jsonFile = Resources.Load<TextAsset>("grid"); // no .json extension
+        if (jsonFile != null)
+        {
+            grid = JsonUtility.FromJson<GridData>(jsonFile.text);
+            Debug.Log("GridData loaded successfully from Resources.");
+        }
+        else
+        {
+            Debug.LogError("grid.json not found in Resources!");
+            return;
+        }
 
         foreach (Tile tile in grid.tiles)
         {

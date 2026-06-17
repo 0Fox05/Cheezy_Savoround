@@ -2,7 +2,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using TMPro;
 
 public class UIManager : MonoBehaviour
@@ -42,16 +41,16 @@ public class UIManager : MonoBehaviour
     {
         Instance = this;
 
-        string path = Path.Combine(Application.streamingAssetsPath, "DailyData.json");
-        if (File.Exists(path))
+        // ✅ Load DailyData.json from Resources
+        TextAsset jsonFile = Resources.Load<TextAsset>("DailyData"); // no .json extension
+        if (jsonFile != null)
         {
-            string json = File.ReadAllText(path);
-            dailyData = JsonUtility.FromJson<DailyData>(json);
-            Debug.Log("DailyData loaded successfully from StreamingAssets.");
+            dailyData = JsonUtility.FromJson<DailyData>(jsonFile.text);
+            Debug.Log("DailyData loaded successfully from Resources.");
         }
         else
         {
-            Debug.LogError($"DailyData.json not found at path: {path}");
+            Debug.LogError("DailyData.json not found in Resources folder!");
         }
 
         if (playButton != null)
@@ -93,11 +92,13 @@ public class UIManager : MonoBehaviour
 
         playerData = SaveSystem.Load();
     }
+
     public void start()
     {
         HideAll();
         menuPanel.SetActive(true);
     }
+
     // ✅ Generic toggle for any panel
     public void TogglePanel(GameObject panel)
     {
